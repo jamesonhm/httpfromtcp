@@ -6,11 +6,8 @@ import (
 	"io"
 	"log"
 	"net"
-	//"os"
 	"strings"
 )
-
-const inputFilePath = "messages.txt"
 
 func main() {
 	listener, err := net.Listen("tcp", ":42069")
@@ -30,7 +27,7 @@ func main() {
 		for line := range linesCh {
 			fmt.Println(line)
 		}
-		fmt.Println("Connection to ", conn.RemoteAddr(), "Closed")
+		fmt.Println("Connection to ", conn.RemoteAddr(), " Closed")
 	}
 }
 
