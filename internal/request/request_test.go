@@ -2,7 +2,6 @@ package request
 
 import (
 	"io"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -81,7 +80,7 @@ func TestRequestLineParse(t *testing.T) {
 		data:            "/coffee GET HTTP/1.1\r\nHost: localhost:42069\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\n\r\n",
 		numBytesPerRead: 9,
 	}
-	r, err = RequestFromReader(reader)
+	_, err = RequestFromReader(reader)
 	require.Error(t, err)
 
 	// Test: Invalid version request line
@@ -89,6 +88,6 @@ func TestRequestLineParse(t *testing.T) {
 		data:            "/coffee GET HTTP/1.2\r\nHost: localhost:42069\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\n\r\n",
 		numBytesPerRead: 20,
 	}
-	r, err = RequestFromReader(reader)
+	_, err = RequestFromReader(reader)
 	require.Error(t, err)
 }
