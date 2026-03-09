@@ -44,6 +44,9 @@ func (h Headers) Parse(data []byte) (n int, done bool, err error) {
 
 func (h Headers) Set(key, value string) {
 	key = strings.ToLower(key)
+	if v, exists := h[key]; exists {
+		value = strings.Join([]string{v, value}, ", ")
+	}
 	h[key] = value
 }
 
