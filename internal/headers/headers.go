@@ -7,14 +7,16 @@ import (
 	"strings"
 )
 
+const crlf = "\r\n"
+
 type Headers map[string]string
 
 func NewHeaders() Headers {
-	return Headers(make(map[string]string))
+	return map[string]string{}
 }
 
 func (h Headers) Parse(data []byte) (n int, done bool, err error) {
-	idx := bytes.Index(data, []byte("\r\n"))
+	idx := bytes.Index(data, []byte(crlf))
 	// not enough data given
 	if idx == -1 {
 		return 0, false, nil
