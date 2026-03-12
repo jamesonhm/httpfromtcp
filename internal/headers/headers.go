@@ -52,6 +52,12 @@ func (h Headers) Set(key, value string) {
 	h[key] = value
 }
 
+func (h Headers) Get(key string) (value string, ok bool) {
+	key = strings.ToLower(key)
+	v, ok := h[key]
+	return v, ok
+}
+
 func validKey(key []byte) bool {
 	for _, c := range key {
 		if !validChar(c) {
