@@ -1,13 +1,15 @@
-package httpserver
+package main
 
 import (
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"httpfromtcp/internal/server"
 )
 
-const port = 32069
+const port = 42069
 
 func main() {
 	server, err := server.Serve(port)
