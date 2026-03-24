@@ -1,7 +1,6 @@
 package server
 
 import (
-	"bytes"
 	"fmt"
 	"httpfromtcp/internal/request"
 	"httpfromtcp/internal/response"
@@ -9,6 +8,8 @@ import (
 	"net"
 	"sync/atomic"
 )
+
+type Handler func(w *response.Writer, req *request.Request)
 
 type Server struct {
 	listener net.Listener
@@ -59,26 +60,16 @@ func (s *Server) listen() {
 func (s *Server) handle(conn net.Conn) {
 	defer conn.Close()
 
+	w := response.NewWriter(conn)
+
 	req, err := request.RequestFromReader(conn)
 	if err != nil {
-		handlerErr := HandlerError{
-			StatusCode: response.StatusCodeBadRequest,
-			Message:    err.Error(),
-		}
-		handlerErr.Write(conn)
+		w.WriteStatusLine(response.StatusCodeBadRequest)
+		body := []byte(fmt.Sprintf("Error parsing request: %v", err))
+		w.WriteHeaders(response.GetDefaultHeaders(len(body)))
+		w.WriteBody(body)
 		return
 	}
 
-	//var buf bytes.Buffer
-	w := response.NewWriter(conn)
 	s.handler(w, req)
-	//if handlerErr != nil {
-	//	handlerErr.Write(conn)
-	//	return
-	//}
-	//b := buf.Bytes()
-	//response.WriteStatusLine(conn, response.StatusCodeSuccess)
-	//h := response.GetDefaultHeaders(len(b))
-	//response.WriteHeaders(conn, h)
-	//conn.Write(b)
 }

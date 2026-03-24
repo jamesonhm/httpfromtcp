@@ -1,7 +1,6 @@
 package main
 
 import (
-	"io"
 	"log"
 	"os"
 	"os/signal"
@@ -71,9 +70,12 @@ func handler(w *response.Writer, req *request.Request) {
 			</html>
 		`
 	}
-	err := w.WriteStatusLine(response.StatusCode(statusCode))
+	_ = w.WriteStatusLine(response.StatusCode(statusCode))
 
-	err = w.WriteHeaders(h)
+	b := []byte(body)
+	h := response.GetDefaultHeaders(len(b))
+	h.Update("Content-Type", "text/html")
+	_ = w.WriteHeaders(h)
 
-	n, err := w.WriteBody([]byte(body))
+	_, _ = w.WriteBody(b)
 }
