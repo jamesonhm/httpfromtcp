@@ -1,9 +1,13 @@
 package main
 
 import (
+	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"httpfromtcp/internal/request"
@@ -30,7 +34,13 @@ func main() {
 func handler(w *response.Writer, req *request.Request) {
 	var statusCode int
 	var body string
-	if req.RequestLine.RequestTarget == "/yourproblem" {
+	tgt := req.RequestLine.RequestTarget
+	switch {
+	case strings.HasPrefix(tgt, "/httpbin"):
+		tgt = strings.TrimPrefix(tgt, "/httpbin")
+		proxyHandler(w, tgt)
+		return
+	case tgt == "/yourproblem":
 		statusCode = 400
 		body = `
 			<html>
@@ -43,7 +53,7 @@ func handler(w *response.Writer, req *request.Request) {
 			  </body>
 			</html>
 		`
-	} else if req.RequestLine.RequestTarget == "/myproblem" {
+	case tgt == "/myproblem":
 		statusCode = 500
 		body = `
 			<html>
@@ -56,7 +66,7 @@ func handler(w *response.Writer, req *request.Request) {
 			  </body>
 			</html>
 		`
-	} else {
+	default:
 		statusCode = 200
 		body = `
 			<html>
@@ -78,4 +88,27 @@ func handler(w *response.Writer, req *request.Request) {
 	_ = w.WriteHeaders(h)
 
 	_, _ = w.WriteBody(b)
+}
+
+func proxyHandler(w *response.Writer, tgt string) {
+	resp, _ := http.Get(fmt.Sprintf("http://httpbin.org%s", tgt))
+
+	w.WriteStatusLine(response.StatusCode(resp.StatusCode))
+
+	h := response.GetDefaultHeaders(0)
+	h.Delete("Content-Length")
+	h.Set("Transfer-Encoding", "chunked")
+	w.WriteHeaders(h)
+
+	buf := make([]byte, 32)
+	for {
+		n, err := resp.Body.Read(buf)
+		if n > 0 {
+			w.WriteChunkedBody(buf[:n])
+		}
+		if err == io.EOF {
+			break
+		}
+	}
+	w.WriteChunkedBodyDone()
 }

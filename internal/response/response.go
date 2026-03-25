@@ -19,6 +19,28 @@ const (
 	writerStateBody       writerState = 2
 )
 
+type chunkReader struct {
+	data            string
+	numBytesPerRead int
+	pos             int
+}
+
+// Read reads up to len(p) or numBytesPerRead bytes from the string per call
+// its useful for simulating reading a variable number of bytes per chunk from a network conn
+func (cr *chunkReader) Read(p []byte) (n int, err error) {
+	if cr.pos >= len(cr.data) {
+		return 0, io.EOF
+	}
+	endIndex := cr.pos + cr.numBytesPerRead
+	if endIndex > len(cr.data) {
+		endIndex = len(cr.data)
+	}
+	n = copy(p, cr.data[cr.pos:endIndex])
+	cr.pos += n
+
+	return n, nil
+}
+
 type Writer struct {
 	w           io.Writer
 	writerState writerState
@@ -70,6 +92,24 @@ func (w *Writer) WriteBody(p []byte) (int, error) {
 	}
 
 	n, err := w.w.Write(p)
+	return n, err
+}
+
+func (w *Writer) WriteChunkedBody(p []byte) (int, error) {
+	if w.writerState != writerStateBody {
+		return 0, fmt.Errorf("Incorrect Writer State for Body: %d", w.writerState)
+	}
+
+	n, err := fmt.Fprintf(w.w, "%x\r\n%s\r\n", len(p), p)
+	return n, err
+}
+
+func (w *Writer) WriteChunkedBodyDone() (int, error) {
+	if w.writerState != writerStateBody {
+		return 0, fmt.Errorf("Incorrect Writer State for Body: %d", w.writerState)
+	}
+
+	n, err := fmt.Fprintf(w.w, "0\r\n\r\n")
 	return n, err
 }
 

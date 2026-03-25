@@ -63,6 +63,15 @@ func (h Headers) Get(key string) (value string, ok bool) {
 	return v, ok
 }
 
+func (h Headers) Delete(key string) (value string, ok bool) {
+	key = strings.ToLower(key)
+	if value, ok := h[key]; ok {
+		delete(h, key)
+		return value, true
+	}
+	return "", false
+}
+
 func validKey(key []byte) bool {
 	for _, c := range key {
 		if !validChar(c) {
