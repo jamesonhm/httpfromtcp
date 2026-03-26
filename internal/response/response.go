@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"httpfromtcp/internal/headers"
 	"io"
+	"strings"
 )
 
 type StatusCode int
@@ -17,6 +18,7 @@ const (
 	writerStateStatusLine writerState = 0
 	writerStateHeaders    writerState = 1
 	writerStateBody       writerState = 2
+	writerStateTrailers   writerState = 3
 )
 
 type chunkReader struct {
@@ -92,6 +94,7 @@ func (w *Writer) WriteBody(p []byte) (int, error) {
 	}
 
 	n, err := w.w.Write(p)
+	w.writerState = writerStateTrailers
 	return n, err
 }
 
@@ -109,8 +112,33 @@ func (w *Writer) WriteChunkedBodyDone() (int, error) {
 		return 0, fmt.Errorf("Incorrect Writer State for Body: %d", w.writerState)
 	}
 
-	n, err := fmt.Fprintf(w.w, "0\r\n\r\n")
+	n, err := fmt.Fprintf(w.w, "0\r\n")
+	w.writerState = writerStateTrailers
 	return n, err
+}
+
+func (w *Writer) WriteTrailers(h headers.Headers) error {
+	if w.writerState != writerStateTrailers {
+		return fmt.Errorf("Incorrect Writer State for Trailers: %d", w.writerState)
+	}
+
+	trailers, ok := h.Get("trailer")
+	if !ok {
+		_, err := fmt.Fprintf(w.w, "\r\n")
+		return err
+	}
+	trailers = strings.ToLower(trailers)
+	for k, v := range h {
+		//_, err := w.w.Write([]byte(fmt.Sprintf("%s: %s\r\n", k, v)))
+		if strings.Contains(trailers, k) {
+			_, err := fmt.Fprintf(w.w, "%s: %s\r\n", k, v)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	_, err := fmt.Fprintf(w.w, "\r\n")
+	return err
 }
 
 func getStatusLine(statusCode StatusCode) []byte {
