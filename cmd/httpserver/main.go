@@ -42,10 +42,26 @@ func handler(w *response.Writer, req *request.Request) {
 		handler400(w, req)
 	case tgt == "/myproblem":
 		handler500(w, req)
+	case tgt == "/video":
+		handlerVideo(w, req)
 	default:
 		handler200(w, req)
 	}
 
+}
+
+func handlerVideo(w *response.Writer, req *request.Request) {
+	v, err := os.ReadFile("./assets/vim.mp4")
+	if err != nil {
+		fmt.Println("error loading video:", err)
+		handler500(w, req)
+		return
+	}
+	w.WriteStatusLine(response.StatusCodeSuccess)
+	h := response.GetDefaultHeaders(len(v))
+	h.Update("Content-Type", "video/mp4")
+	w.WriteHeaders(h)
+	w.WriteBody(v)
 }
 
 func handler500(w *response.Writer, _ *request.Request) {
